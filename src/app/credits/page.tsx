@@ -2,9 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Script from 'next/script';
-import './styles.css';
 
-// Update TypeScript declaration for the HealcodeWidget global
 declare global {
   interface Window {
     HealcodeWidget?: {
@@ -14,13 +12,12 @@ declare global {
   }
 }
 
-// Define the credit packages
 const creditPackages = [
-  { id: '149', credits: 5, price: 49.00, originalPrice: 98.00 },
-  { id: '146', credits: 10, price: 62.00, originalPrice: 124.00 },
-  { id: '145', credits: 15, price: 75.00, originalPrice: 150.00 },
-  { id: '148', credits: 20, price: 87.00, originalPrice: 174.00 },
-  { id: '147', credits: 30, price: 99.00, originalPrice: 198.00 },
+  { id: '149', name: 'Basic', credits: 5, price: 49.00, originalPrice: 98.00, description: 'Perfect for beginners' },
+  { id: '146', name: 'Standard', credits: 10, price: 62.00, originalPrice: 124.00, description: 'Most popular choice' },
+  { id: '145', name: 'Premium', credits: 15, price: 75.00, originalPrice: 150.00, description: 'Best value for regulars' },
+  { id: '148', name: 'Pro', credits: 20, price: 87.00, originalPrice: 174.00, description: 'For dedicated members' },
+  { id: '147', name: 'Elite', credits: 30, price: 99.00, originalPrice: 198.00, description: 'Maximum flexibility' },
 ];
 
 export default function CreditsPage() {
@@ -31,7 +28,6 @@ export default function CreditsPage() {
 
   const handlePackageSelect = (pkg: typeof creditPackages[0]) => {
     setSelectedPackage(pkg);
-    
     if (scriptLoaded) {
       createWidget(pkg);
     }
@@ -60,71 +56,75 @@ export default function CreditsPage() {
       
       widgetContainerRef.current.innerHTML = widgetHTML;
       
-      setTimeout(() => {
-        const links = widgetContainerRef.current?.querySelectorAll('a');
-        if (links) {
-          links.forEach(link => {
-            const originalHref = link.getAttribute('href');
-            link.removeAttribute('href');
-            
-            if (originalHref) {
-              link.setAttribute('data-href', originalHref);
-            }
-            
-            link.addEventListener('click', (e) => {
-              e.preventDefault();
-              const url = link.getAttribute('data-href');
-              if (url) {
-                window.open(url, '_blank');
-              }
-              return false;
-            });
-          });
-        }
-      }, 500);
-      
       if (window.HealcodeWidget && typeof window.HealcodeWidget.init === 'function') {
         window.HealcodeWidget.init();
       }
-      
     } catch (error) {
       console.error('Error creating widget:', error);
-      
-      if (widgetContainerRef.current) {
-        widgetContainerRef.current.innerHTML = `
-          <a 
-             class="trial-button" 
-             onclick="window.open('https://clients.mindbodyonline.com/classic/ws?studioid=30089&stype=41&prodid=${pkg.id}', '_blank'); return false;"
-          >
-            Get ${pkg.credits} Credits
-          </a>
-        `;
-      }
+    }
+  };
+
+  // Function to trigger the widget's purchase link
+  const triggerWidgetPurchase = () => {
+    const widgetLink = widgetContainerRef.current?.querySelector('a');
+    if (widgetLink) {
+      widgetLink.click();
+    } else {
+      console.log('Widget link not found, recreating widget');
+      // If link not found, try recreating the widget
+      createWidget(selectedPackage);
+      // Give it a moment to initialize, then try clicking again
+      setTimeout(() => {
+        const newWidgetLink = widgetContainerRef.current?.querySelector('a');
+        if (newWidgetLink) {
+          newWidgetLink.click();
+        } else {
+          console.error('Failed to find widget link after recreation');
+        }
+      }, 300);
     }
   };
 
   useEffect(() => {
     if (scriptLoaded && typeof document !== 'undefined') {
+      // Create widget with the default package on initial load
       setTimeout(() => {
         createWidget(selectedPackage);
+        console.log('Widget created for package:', selectedPackage.id);
       }, 100);
     }
-  }, [scriptLoaded, selectedPackage]);
+  }, [scriptLoaded]);
+
+  // Add a separate effect to handle package changes
+  useEffect(() => {
+    if (scriptLoaded && typeof document !== 'undefined') {
+      createWidget(selectedPackage);
+      console.log('Widget updated for package:', selectedPackage.id);
+    }
+  }, [selectedPackage, scriptLoaded]);
+
+  const savings = selectedPackage.originalPrice - selectedPackage.price;
+  const savingsPercentage = Math.round((savings / selectedPackage.originalPrice) * 100);
 
   return (
-    <main className="trial-container flex min-h-screen flex-col items-center justify-center">
+    <main className="min-h-screen bg-black/90 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-2xl mx-auto flex flex-col items-center">
-        <div className="trial-card w-full">
-          <h2 className="trial-header text-left text-4xl mb-8">
-            Workout Credits (50% off)
+        <div className="w-full bg-[#1a1a1a] rounded-3xl p-8 md:p-12 border border-white/10">
+          <h2 className="text-4xl font-bold text-white mb-8">
+            Select Membership Type
           </h2>
           
-          <div className="credit-packages-grid">
+          <div className="space-y-3">
             {creditPackages.map((pkg) => (
               <div 
                 key={pkg.id}
-                className={`credit-package-tile ${selectedPackage.id === pkg.id ? 'selected' : ''}`}
                 onClick={() => handlePackageSelect(pkg)}
+                className={`
+                  relative p-4 rounded-2xl cursor-pointer transition-all duration-200
+                  ${selectedPackage.id === pkg.id 
+                    ? 'bg-white/5 border border-[#b0fb50]' 
+                    : 'bg-transparent border border-white/10 hover:border-white/20'}
+                `}
               >
                 <input 
                   type="radio" 
@@ -132,47 +132,79 @@ export default function CreditsPage() {
                   id={`package-${pkg.id}`} 
                   checked={selectedPackage.id === pkg.id}
                   onChange={() => handlePackageSelect(pkg)}
-                  className="hidden-radio"
-                  aria-label={`${pkg.credits} Workout Credits for $${pkg.price}`}
+                  className="sr-only"
+                  aria-label={`${pkg.name} - ${pkg.credits} Credits`}
                 />
-                <div className="package-content">
-                  <div className="package-credits">{pkg.credits}</div>
-                  <div className="package-label">Credits</div>
-                  <div className="package-price">
-                    <span className="current-price">${pkg.price}</span>
-                    <span className="original-price">${pkg.originalPrice}</span>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center
+                      ${selectedPackage.id === pkg.id 
+                        ? 'border-[#b0fb50] bg-[#b0fb50]' 
+                        : 'border-white/30'}`}
+                    >
+                      {selectedPackage.id === pkg.id && (
+                        <div className="w-2 h-2 rounded-full bg-black"></div>
+                      )}
+                    </div>
+                    <span className="text-lg font-medium text-white">{pkg.name}</span>
                   </div>
-                  <div className="package-discount">50% off</div>
-                  {selectedPackage.id === pkg.id && (
-                    <div className="package-selected-indicator">✓</div>
-                  )}
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="w-full mt-8">
+          {/* Cart Information Section */}
+          <div className="mt-8 p-6 bg-white/5 rounded-2xl border border-white/10">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Selected Plan</span>
+                <span className="text-white font-medium">{selectedPackage.name}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Credits</span>
+                <span className="text-white font-medium">{selectedPackage.credits} Credits</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Original Price</span>
+                <span className="text-white/60 line-through">${selectedPackage.originalPrice}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Your Price</span>
+                <span className="text-[#b0fb50] font-bold">${selectedPackage.price}</span>
+              </div>
+              <div className="flex justify-between items-center pt-4 border-t border-white/10">
+                <span className="text-gray-400">Total Savings</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#b0fb50] font-bold">${savings}</span>
+                  <span className="text-sm px-2 py-1 rounded-full bg-[#b0fb50]/10 text-[#b0fb50]">
+                    {savingsPercentage}% OFF
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Hidden container for the Healcode widget */}
             <div 
               ref={widgetContainerRef}
               id="healcode-widget-container"
-              className="w-full"
+              className="hidden"
+            />
+            
+            {/* Custom styled button that triggers the widget */}
+            <button
+              onClick={triggerWidgetPurchase}
+              className="w-full mt-8 bg-[#b0fb50] hover:bg-[#9fdc4f] text-black font-semibold rounded-full py-4 px-6 transition-all duration-200 flex items-center justify-center gap-2"
             >
-              {!scriptLoaded && (
-                <button 
-                  className="trial-button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.open(`https://clients.mindbodyonline.com/classic/ws?studioid=30089&stype=41&prodid=${selectedPackage.id}`, '_blank');
-                  }}
-                >
-                  Get {selectedPackage.credits} Credits
-                </button>
-              )}
-            </div>
+              Pay Now
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
           </div>
         </div>
 
-        <div className="trial-footer">
+        <div className="mt-8 text-center text-gray-500 text-sm">
           <p>© {new Date().getFullYear()} Studio3. All rights reserved.</p>
         </div>
       </div>
