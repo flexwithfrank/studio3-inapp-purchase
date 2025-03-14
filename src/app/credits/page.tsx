@@ -16,15 +16,17 @@ declare global {
 
 // Define the credit packages
 const creditPackages = [
+  { id: '149', credits: 5, price: 49.00, originalPrice: 98.00 },
   { id: '146', credits: 10, price: 62.00, originalPrice: 124.00 },
   { id: '145', credits: 15, price: 75.00, originalPrice: 150.00 },
   { id: '148', credits: 20, price: 87.00, originalPrice: 174.00 },
   { id: '147', credits: 30, price: 99.00, originalPrice: 198.00 },
-  { id: '149', credits: 5, price: 49.00, originalPrice: 98.00 },
 ];
 
 export default function CreditsPage() {
-  const [selectedPackage, setSelectedPackage] = useState(creditPackages[0]);
+  // Find the 5 credit package (ID 149) and set it as default
+  const defaultPackage = creditPackages.find(pkg => pkg.id === '149') || creditPackages[0];
+  const [selectedPackage, setSelectedPackage] = useState(defaultPackage);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const widgetContainerRef = useRef<HTMLDivElement>(null);
 
@@ -48,30 +50,6 @@ export default function CreditsPage() {
         widgetContainerRef.current.removeChild(widgetContainerRef.current.firstChild);
       }
       
-      // Create a button element as a fallback
-      const button = document.createElement('a');
-      button.href = '#';
-      button.className = 'healcode-contract-text-link';
-      button.textContent = `Buy ${pkg.credits} Credits for $${pkg.price}`;
-      button.setAttribute('data-service-id', pkg.id);
-      
-      // Add the button to the container
-      widgetContainerRef.current.appendChild(button);
-      
-      // Add the Healcode widget script tag with attributes
-      const scriptTag = document.createElement('script');
-      scriptTag.type = 'text/javascript';
-      scriptTag.innerHTML = `
-        (function() {
-          if (window.HealcodeWidget && typeof window.HealcodeWidget.init === 'function') {
-            window.HealcodeWidget.init();
-          }
-        })();
-      `;
-      
-      // Add the script tag after the button
-      widgetContainerRef.current.appendChild(scriptTag);
-      
       // Add the actual healcode widget HTML directly
       const widgetHTML = `
         <healcode-widget 
@@ -89,16 +67,54 @@ export default function CreditsPage() {
       // Insert the widget HTML
       widgetContainerRef.current.innerHTML = widgetHTML;
       
+      // Add event listener to prevent default behavior on any links
+      setTimeout(() => {
+        const links = widgetContainerRef.current?.querySelectorAll('a');
+        if (links) {
+          links.forEach(link => {
+            // Store the original href
+            const originalHref = link.getAttribute('href');
+            
+            // Remove the href attribute to prevent default navigation
+            link.removeAttribute('href');
+            
+            // Add a data attribute to store the original URL
+            if (originalHref) {
+              link.setAttribute('data-href', originalHref);
+            }
+            
+            // Add click event listener to handle the click manually
+            link.addEventListener('click', (e) => {
+              e.preventDefault();
+              
+              // Get the stored URL
+              const url = link.getAttribute('data-href');
+              if (url) {
+                // Open in a new window/tab
+                window.open(url, '_blank');
+              }
+              
+              return false;
+            });
+          });
+        }
+      }, 500); // Give time for the widget to render
+      
+      // Initialize the widget if possible
+      if (window.HealcodeWidget && typeof window.HealcodeWidget.init === 'function') {
+        window.HealcodeWidget.init();
+      }
+      
     } catch (error) {
       console.error('Error creating widget:', error);
       
       // Fallback to a simple button if widget creation fails
       if (widgetContainerRef.current) {
         widgetContainerRef.current.innerHTML = `
-          <a href="https://clients.mindbodyonline.com/classic/ws?studioid=30089&stype=41&prodid=${pkg.id}" 
+          <a 
              class="trial-button" 
-             target="_blank" 
-             rel="noopener noreferrer">
+             onclick="window.open('https://clients.mindbodyonline.com/classic/ws?studioid=30089&stype=41&prodid=${pkg.id}', '_blank'); return false;"
+          >
             Buy ${pkg.credits} Credits for $${pkg.price}
           </a>
         `;
@@ -166,7 +182,13 @@ export default function CreditsPage() {
             >
               {/* Widget will be inserted here by script */}
               {!scriptLoaded && (
-                <button className="trial-button">
+                <button 
+                  className="trial-button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.open(`https://clients.mindbodyonline.com/classic/ws?studioid=30089&stype=41&prodid=${selectedPackage.id}`, '_blank');
+                  }}
+                >
                   Buy {selectedPackage.credits} Credits for ${selectedPackage.price}
                 </button>
               )}
