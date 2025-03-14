@@ -4,11 +4,12 @@ import { useEffect } from 'react';
 import Script from 'next/script';
 import './styles.css';
 
-// Add TypeScript declaration for the HealcodeWidget global
+// Update TypeScript declaration for the HealcodeWidget global
 declare global {
   interface Window {
     HealcodeWidget?: {
-      init: () => void;
+      init?: () => void;
+      [key: string]: unknown;
     };
   }
 }
@@ -19,7 +20,16 @@ export default function TrialPage() {
   useEffect(() => {
     // Check if the healcode script has already been loaded
     if (window.HealcodeWidget) {
-      window.HealcodeWidget.init();
+      try {
+        // Try to initialize if the method exists
+        if (typeof window.HealcodeWidget.init === 'function') {
+          window.HealcodeWidget.init();
+        } else {
+          console.log('HealcodeWidget loaded but init method not found');
+        }
+      } catch (error) {
+        console.error('Error initializing HealcodeWidget:', error);
+      }
     }
   }, []);
 
@@ -27,14 +37,14 @@ export default function TrialPage() {
     <main className="trial-container flex min-h-screen flex-col items-center justify-center">
       <div className="w-full max-w-md mx-auto flex flex-col items-center">
         {/* Logo or Header */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <h1 className="trial-logo">Studio3</h1>
-        </div>
+        </div> */}
 
         {/* Main Content */}
         <div className="trial-card w-full">
-          <h2 className="trial-header text-center">
-            Get 7 days of workouts for $7
+          <h2 className="trial-header text-left text-5xl">
+        7 days of workouts for $7
           </h2>
           
           <div className="space-y-4 mb-6">
@@ -82,26 +92,29 @@ export default function TrialPage() {
         src="https://widgets.mindbodyonline.com/javascripts/healcode.js"
         strategy="afterInteractive"
         onLoad={() => {
-          // Create the healcode widget element
-          const healcodeWidget = document.createElement('healcode-widget');
-          healcodeWidget.setAttribute('data-version', '0.2');
-          healcodeWidget.setAttribute('data-link-class', 'healcode-pricing-option-text-link');
-          healcodeWidget.setAttribute('data-site-id', '30089');
-          healcodeWidget.setAttribute('data-mb-site-id', '686934');
-          healcodeWidget.setAttribute('data-service-id', '101246');
-          healcodeWidget.setAttribute('data-bw-identity-site', 'false');
-          healcodeWidget.setAttribute('data-type', 'pricing-link');
-          healcodeWidget.setAttribute('data-inner-html', 'Buy Now');
-          
-          // Replace the button with the actual widget
-          const container = document.getElementById('mindbody-widget-button');
-          if (container && container.parentNode) {
-            container.parentNode.replaceChild(healcodeWidget, container);
-          }
-          
-          // Initialize the widget
-          if (window.HealcodeWidget) {
-            window.HealcodeWidget.init();
+          try {
+            // Create the healcode widget element
+            const healcodeWidget = document.createElement('healcode-widget');
+            healcodeWidget.setAttribute('data-version', '0.2');
+            healcodeWidget.setAttribute('data-link-class', 'healcode-pricing-option-text-link');
+            healcodeWidget.setAttribute('data-site-id', '30089');
+            healcodeWidget.setAttribute('data-mb-site-id', '686934');
+            healcodeWidget.setAttribute('data-service-id', '101246');
+            healcodeWidget.setAttribute('data-bw-identity-site', 'false');
+            healcodeWidget.setAttribute('data-type', 'pricing-link');
+            healcodeWidget.setAttribute('data-inner-html', 'Buy Now');
+            
+            // Replace the button with the actual widget
+            const container = document.getElementById('mindbody-widget-button');
+            if (container && container.parentNode) {
+              container.parentNode.replaceChild(healcodeWidget, container);
+            }
+            
+            // The script might not expose an init method directly
+            // Let the widget initialize itself naturally
+            console.log('Healcode widget added to the DOM');
+          } catch (error) {
+            console.error('Error setting up Healcode widget:', error);
           }
         }}
       />
