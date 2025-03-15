@@ -108,7 +108,7 @@ export default function TrialPage() {
   const savingsPercentage = Math.round((savings / trialPackage.originalPrice) * 100);
 
   return (
-    <main className="min-h-screen bg-black/90 flex flex-col items-center justify-center p-4">
+    <main className="min-h-screen bg-[#1a1a1a] flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-2xl mx-auto flex flex-col items-center pt-12">
         <div className="w-full bg-[#1a1a1a] rounded-3xl p-2 md:p-12">
           <h2 className="text-4xl font-bold text-white mb-8">
