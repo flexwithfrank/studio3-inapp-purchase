@@ -16,7 +16,8 @@ declare global {
 
 // Trial package information
 const trialPackage = {
-  id: '101246',
+//   id: '101246',
+  id: '101258',
   name: '7-Day Trial',
   price: 7.00,
   originalPrice: 14.00,
